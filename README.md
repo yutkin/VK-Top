@@ -2,7 +2,7 @@
 `pip install vktop`
 
 ##Dependencies
-- [Requests])
+- [Requests]
 
 ##Help
 ```
