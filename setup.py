@@ -2,14 +2,14 @@ from setuptools import setup
 setup(
   name = 'vktop',
   packages = ['vktop'],
-  version = '1.0',
+  version = '1.1',
   description = 'Sort posts of any page at VK.com',
   author = 'Dmitry Yutkin',
   author_email = 'yutkinn@gmail.com',
   url = 'https://github.com/yutkin/VK-Top',
-  download_url = 'https://github.com/yutkin/VK-Top/tarball/v1.0',
+  download_url = 'https://github.com/yutkin/VK-Top/tarball/1.1',
   include_package_data=True,
-  license='LICENSE.txt',
+  license='MIT',
   keywords = ['vk.com', 'vk', 'downloader', 'posts', 'social', 'networks'],
   classifiers = [],
   entry_points=dict(
