@@ -165,7 +165,6 @@ def recieve_posts(page_id, last_days, reposts):
                 continue
             if error == const.HIDDEN_WALL:
                 raise HiddenWall('Wall is closed for outside view')
-            print(response)
             raise RuntimeError(response['error']['error_msg'])
 
         # Interrupt loop when all posts were received
