@@ -1,6 +1,8 @@
+## Installation
+`pip install vktop`
+
 ##Dependencies
-- [Requests] module (`pip install requests`)
-- Python 3
+- [Requests])
 
 ##Help
 ```

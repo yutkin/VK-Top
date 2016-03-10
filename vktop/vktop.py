@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/local/bin/python
 
 # The MIT License (MIT)
 #
@@ -24,12 +24,45 @@
 
 
 import argparse
-import const
 from datetime import datetime, timedelta
 import json
 import sys
 import requests
 import time
+import re
+import textwrap
+
+
+APP_DESCRIPTION = textwrap.dedent('''
+    Sort posts of any public availabe page at VK.com.
+    Github: https://github.com/yutkin/VK-Top
+
+    Possible types of input URLs:
+    - https://vk.com/page_name
+    - http://vk.com/club12345
+    - public1234567
+    - id1234567
+    - event1234567
+    ''')
+
+LIKES = 'likes'
+REPOSTS = 'reposts'
+
+ACCESS_TOKEN = 'ff8faef07fe2666af8743cd4384fa595f85927d6c39dc4360e831a149d9f956710be447816dd857d2dee7'
+
+API_URL = 'https://api.vk.com/method/'
+API_V = 5.37
+
+INVALID_URL = ('{url} - invalid url address')
+NEGATIVE_ARGUMENT = ('{argument} - should be greater or equal to 0')
+MANY_REQUESTS = 6
+HIDDEN_WALL = 13
+
+
+TXT_ID_PTRN = r'(?:https?:\/\/)(?:vk.com\/(?!club|public|id|event))(?P<id>(?![_.])(?!club|public|id|event)[a-z0-9_.]*[a-z][a-z0-9_.]*)'
+NUM_ID_PTRN = r'^(?:https?:\/\/)?(?:vk.com\/)?(?P<type>club|public|id|event)(?P<id>\d+)$'
+TXT_ID_REGEXP = re.compile(TXT_ID_PTRN)
+NUM_ID_REGEXP = re.compile(NUM_ID_PTRN)
 
 class HiddenWall(BaseException):
     """ Dummy exception """
@@ -46,19 +79,19 @@ def url_validator(arg):
     arg = arg.lower()
 
     # If url something like https://vk.com/textual_id
-    matched_txt_id = const.TXT_ID_REGEXP.match(arg)
+    matched_txt_id = TXT_ID_REGEXP.match(arg)
     if matched_txt_id:
         url = matched_txt_id.groupdict()
         url['type'] = 'symbolic'
         return url
 
     # If url something like https://vk.com/id123456
-    matched_numeric_id = const.NUM_ID_REGEXP.match(arg)
+    matched_numeric_id = NUM_ID_REGEXP.match(arg)
     if matched_numeric_id:
         return matched_numeric_id.groupdict()
 
     raise argparse.ArgumentTypeError(
-            const.INVALID_URL.format(url=arg))
+            INVALID_URL.format(url=arg))
 
 
 def num_validator(arg):
@@ -68,12 +101,12 @@ def num_validator(arg):
         return num
     else:
         raise argparse.ArgumentTypeError(
-                const.NEGATIVE_ARGUMENT.format(argument=arg))
+                NEGATIVE_ARGUMENT.format(argument=arg))
 
 
 def parse_args():
     """ Parses input arguments """
-    parser = argparse.ArgumentParser(description=const.APP_DESCRIPTION,
+    parser = argparse.ArgumentParser(description=APP_DESCRIPTION,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('url',
@@ -115,7 +148,7 @@ def get_page_id(url):
     """ Returns page's numeric ID """
     if url['type'] not in ['id', 'public', 'event', 'club']:
         params = {'screen_name': url['id']}
-        request = requests.get(const.API_URL + 'utils.resolveScreenName?',
+        request = requests.get(API_URL + 'utils.resolveScreenName?',
                                params=params)
         response = json.loads(request.text)['response']
 
@@ -141,11 +174,11 @@ def recieve_posts(page_id, last_days, reposts):
     unix_stamp = int(deadline.strftime("%s"))
 
     if reposts:
-        compar_key = const.REPOSTS
+        compar_key = REPOSTS
     else:
-        compar_key = const.LIKES
+        compar_key = LIKES
 
-    params = {'access_token': const.ACCESS_TOKEN,
+    params = {'access_token': ACCESS_TOKEN,
               'id': page_id,
               'compar_key': compar_key,
               'deadline':  unix_stamp if last_days != -1 else last_days
@@ -157,13 +190,13 @@ def recieve_posts(page_id, last_days, reposts):
     while ONGOING:
         params['offset'] = offset
         response = json.loads(requests.post(
-            const.API_URL + 'execute.getPostsNew?', params=params).text)
+            API_URL + 'execute.getPostsNew?', params=params).text)
 
         if 'error' in response:
             error = response['error']['error_code']
-            if error == const.MANY_REQUESTS:
+            if error == MANY_REQUESTS:
                 continue
-            if error == const.HIDDEN_WALL:
+            if error == HIDDEN_WALL:
                 raise HiddenWall('Wall is closed for outside view')
             raise RuntimeError(response['error']['error_msg'])
 
