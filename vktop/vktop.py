@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2016 Yutkin Dmitry
