@@ -23,6 +23,8 @@
 # SOFTWARE.
 
 
+from __future__ import print_function
+from __future__ import division
 import argparse
 from datetime import datetime, timedelta
 import json
@@ -171,7 +173,7 @@ def recieve_posts(page_id, last_days, reposts):
     than :last_days: ago
     """
     deadline = datetime.now() - timedelta(days=last_days)
-    unix_stamp = int(deadline.strftime("%s"))
+    unix_stamp = deadline.timestamp()
 
     if reposts:
         compar_key = REPOSTS
@@ -251,8 +253,8 @@ def main():
     except KeyboardInterrupt:
         print('Exiting...')
         return
-    except Exception:
-        print('{0}: error: {1}'.format(sys.argv[0], 'Unknown error'))
+    except Exception as e:
+        print('{0}: error: {1}'.format(sys.argv[0], e))
         return
 
 
