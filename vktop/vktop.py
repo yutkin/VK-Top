@@ -1,5 +1,3 @@
-#!/usr/local/bin/python
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2016 Yutkin Dmitry
@@ -22,265 +20,211 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from __future__ import print_function
-from __future__ import division
-import argparse
-from datetime import datetime, timedelta
-import json
-import sys
 import requests
-import time
-import re
-import textwrap
+import sys
+import argparser
+import constants
 
-
-APP_DESCRIPTION = textwrap.dedent('''
-    Sort posts of any public availabe page at VK.com.
-    Github: https://github.com/yutkin/VK-Top
-
-    Possible types of input URLs:
-    - https://vk.com/page_name
-    - http://vk.com/club12345
-    - public1234567
-    - id1234567
-    - event1234567
-    ''')
-
-LIKES = 'likes'
-REPOSTS = 'reposts'
-
-ACCESS_TOKEN = 'ff8faef07fe2666af8743cd4384fa595f85927d6c39dc4360e831a149d9f956710be447816dd857d2dee7'
-
-API_URL = 'https://api.vk.com/method/'
-API_V = 5.37
-
-INVALID_URL = ('{url} - invalid url address')
-NEGATIVE_ARGUMENT = ('{argument} - should be greater or equal to 0')
-MANY_REQUESTS = 6
-HIDDEN_WALL = 13
-
-
-TXT_ID_PTRN = r'(?:https?:\/\/)(?:vk.com\/(?!club|public|id|event))(?P<id>(?![_.])(?!club|public|id|event)[a-z0-9_.]*[a-z][a-z0-9_.]*)'
-NUM_ID_PTRN = r'^(?:https?:\/\/)?(?:vk.com\/)?(?P<type>club|public|id|event)(?P<id>\d+)$'
-TXT_ID_REGEXP = re.compile(TXT_ID_PTRN)
-NUM_ID_REGEXP = re.compile(NUM_ID_PTRN)
-
-class HiddenWall(BaseException):
-    """ Dummy exception """
-    pass
-
-
-class PageNotAvailable(BaseException):
-    """ Dummy exception """
-    pass
-
-
-def url_validator(arg):
-    """ Checks correctness of url argument """
-    arg = arg.lower()
-
-    # If url something like https://vk.com/textual_id
-    matched_txt_id = TXT_ID_REGEXP.match(arg)
-    if matched_txt_id:
-        url = matched_txt_id.groupdict()
-        url['type'] = 'symbolic'
-        return url
-
-    # If url something like https://vk.com/id123456
-    matched_numeric_id = NUM_ID_REGEXP.match(arg)
-    if matched_numeric_id:
-        return matched_numeric_id.groupdict()
-
-    raise argparse.ArgumentTypeError(
-            INVALID_URL.format(url=arg))
-
-
-def num_validator(arg):
-    """ Checks numbers on negativity """
-    num = int(arg)
-    if num >= 0:
-        return num
-    else:
-        raise argparse.ArgumentTypeError(
-                NEGATIVE_ARGUMENT.format(argument=arg))
-
-
-def parse_args():
-    """ Parses input arguments """
-    parser = argparse.ArgumentParser(description=APP_DESCRIPTION,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('url',
-                        action='store',
-                        default=None,
-                        help='target page',
-                        type=url_validator)
-
-    compar_key = parser.add_mutually_exclusive_group()
-
-    compar_key.add_argument('-l',
-                       '--likes',
-                       help='sort posts by likes (by default)',
-                       action='store_true',
-                       default=True)
-
-    compar_key.add_argument('-r',
-                       '--reposts',
-                       help='sort posts by reposts',
-                       action='store_true')
-
-    parser.add_argument('-t',
-                        '--top',
-                        help='number of showing posts. (10 by default)',
-                        default=10,
-                        type=num_validator)
-
-    parser.add_argument('-d',
-                        '--days',
-                        type=int,
-                        default=-1,
-                        help='last period (in days) for post processing. '
-                             '(all period by default)')
-
-    return parser.parse_args()
-
+class VKApiError(RuntimeError):
+  pass
 
 def get_page_id(url):
-    """ Returns page's numeric ID """
-    if url['type'] not in ['id', 'public', 'event', 'club']:
-        params = {'screen_name': url['id']}
-        request = requests.get(API_URL + 'utils.resolveScreenName?',
-                               params=params)
-        response = json.loads(request.text)['response']
-
-        if response:
-            if response['type'] == 'user':
-                return response['object_id']
-            else:
-                return -response['object_id']
-        else:
-            raise PageNotAvailable(url['id'] + ' is not available')
-    elif url['type'] == 'id':
-        return int(url['id'])
+  """ Returns page's numeric ID """
+  params = {'screen_name': url['id'], 'v': constants.VKAPI_VERSION}
+  if url['type'] == 'domain':
+    request = requests.get(constants.VKAPI_URL + 'utils.resolveScreenName',
+                           params=params)
+    response = request.json()['response']
+    
+    if response:
+      if response['type'] == 'user':
+        return response['object_id']
+      else:
+        return -response['object_id']
     else:
-        return -int(url['id'])
+      raise RuntimeError('Troubles with resolving {} id'.format(url['id']))
+  
+  id = int(url['id'])
+  return id if url['type'] == 'id' else -id
 
 
-def recieve_posts(page_id, last_days, reposts):
-    """
-    Returns posts from :page_id: that were posted not earlier
-    than :last_days: ago
-    """
-    deadline = datetime.now() - timedelta(days=last_days)
-    unix_stamp = deadline.timestamp()
+class Post:
+  def __init__(self, *, id, likes, reposts, date, text):
+    self._id = id
+    self._likes = likes
+    self._reposts = reposts
+    self._text = text
+    self._date = date
+  
+  @property
+  def id(self):
+    return self._id
 
-    if reposts:
-        compar_key = REPOSTS
+  @property
+  def likes(self):
+    return self._likes
+  
+  @property
+  def reposts(self):
+    return self._reposts
+  
+  @property
+  def text(self):
+    return self._text
+
+  @property
+  def date(self):
+    return self._date
+
+class PostsReceiver:
+  def __init__(self, *, page_id):
+    self.page_id = page_id
+    self.api_url = constants.VKAPI_URL + 'wall.get'
+    self.request_params = {'owner_id': self.page_id,
+                           'v': constants.VKAPI_VERSION }
+  
+  def __number_of_posts(self):
+    """ Returns total number of post on the page """
+    self.request_params['offset'] = 0
+    self.request_params['count'] = 1
+    
+    response = requests.get(self.api_url, params=self.request_params).json()
+    
+    if 'error' in response:
+      raise VKApiError(response['error']['error_msg'])
+    
+    return response['response']['count']
+  
+  def receive(self, init_offset=None, num_posts=None):
+    """ Synchronously downloads 'num_posts' posts starting
+        from 'init_offset' position """
+    
+    if init_offset:
+      self.request_params['offset'] = init_offset
     else:
-        compar_key = LIKES
-
-    params = {'access_token': ACCESS_TOKEN,
-              'id': page_id,
-              'compar_key': compar_key,
-              'deadline':  unix_stamp if last_days != -1 else last_days
-              }
-    received_posts = []
-
-    offset = 0
-    ONGOING = True
-    while ONGOING:
-        params['offset'] = offset
-        response = json.loads(requests.post(
-            API_URL + 'execute.getPostsNew?', params=params).text)
-
-        if 'error' in response:
-            error = response['error']['error_code']
-            if error == MANY_REQUESTS:
-                continue
-            if error == HIDDEN_WALL:
-                raise HiddenWall('Wall is closed for outside view')
-            raise RuntimeError(response['error']['error_msg'])
-
-        # Interrupt loop when all posts were received
-        if not response['response']:
-            break
-
-        received_data = response['response']
-        for chunk in received_data:
-            chunk_size = len(chunk['ids'])
-            for i in range(chunk_size):
-                post = dict()
-                post['date'] = datetime.fromtimestamp(chunk['dates'][i])
-                if chunk[compar_key][i] and (last_days == -1
-                    or post['date'].year >= deadline.year
-                    and post['date'].month >= deadline.month
-                    and post['date'].day >= deadline.day):
-
-                    post['id'] = chunk['ids'][i]
-                    post[compar_key] = chunk[compar_key][i]
-                    received_posts.append(post)
-            if 'stop' in chunk:
-                ONGOING = False
-                break
-        offset += 1
-
-    return received_posts
-
-
-def sort_posts(posts, reposts=False):
-    """ Sort posts by specified parameter """
-    if reposts:
-        return sorted(posts, key=lambda post: -post['reposts'])
+      self.request_params['offset'] = 0
+    if num_posts and num_posts < 100:
+      self.request_params['count'] = num_posts
     else:
-        return sorted(posts, key=lambda post: -post['likes'])
+      self.request_params['count'] = 100
+    
+    
+    posts = []
+    total_received = 0
+    while True:
+      response = requests.get(self.api_url, params=self.request_params).json()
+    
+      if 'error' in response:
+        raise VKApiError(response['error']['error_msg'])
+      
+      received_posts = response['response']['items']
+      
+      if not received_posts:
+        break
+      
+      for post in received_posts:
+        posts.append(Post(id=post['id'],
+                          text=post['text'],
+                          likes=post['likes']['count'],
+                          reposts=post['reposts']['count'],
+                          date=post['date']
+                          ))
+      total_received += len(received_posts)
+  
+      if total_received == num_posts:
+        break
+      
+      self.request_params['offset'] += 100
+      
+      if num_posts:
+        diff = abs(num_posts - total_received)
+        self.request_params['count'] = 100 if diff > 100 else diff
+
+    return posts
+  
+  def parallel_receive(self, *, max_workers=None):
+    """  Downloads posts in parallel processes.
+    Every worker process independent segment. """
+    
+    from multiprocessing import cpu_count
+    from concurrent.futures import ProcessPoolExecutor
+    from concurrent.futures import as_completed
+    
+    total_posts = self.__number_of_posts()
+    
+    workers = max_workers if max_workers else cpu_count()
+
+    posts = []
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+      futures = [executor.submit(self.receive, offset, count)
+                 for offset, count in self._distribute_posts(total_posts, workers)]
+
+      for future in as_completed(futures):
+        try:
+          posts.extend(future.result())
+        except Exception as exc:
+          raise RuntimeError(exc)
+
+    return posts
+  
+  def _distribute_posts(self, total_posts, workers):
+    """ Returns next start position for downloading and number
+     of posts to download. """
+    per_worker = total_posts // workers + total_posts % workers
+    for offset in range(0, total_posts, per_worker):
+      if (offset + per_worker) < total_posts:
+        yield offset, per_worker
+      else:
+        yield offset, total_posts - offset
+      
+
+def pretty_print(posts, page_id, by_reposts):
+  """ Prints results in a pretty table """
+  for i, post in enumerate(posts):
+    post_link = 'https://vk.com/wall{0}_{1}'.format(page_id, post.id)
+    print('{:<3} {:<50} {}: {}'.format(
+      str(i+1)+'.',
+      post_link,
+      'Reposts' if by_reposts else 'Likes',
+      post.reposts if by_reposts else post.likes))
 
 
 def main():
-    """  Main entry point for execution as a program """
+  args = argparser.parse_args()
 
-    init_point = time.time()
-    args = parse_args()
-    try:
-        page_id = get_page_id(args.url)
-        print('Downloading posts. '
-              'This may take some time, be patient...')
-        received_posts = recieve_posts(page_id, args.days, args.reposts)
-        received_posts = sort_posts(received_posts, args.reposts)
-    except (PageNotAvailable, HiddenWall) as error:
-        print('{0}: error: {1}'.format(sys.argv[0], error))
-        return
-    except KeyboardInterrupt:
-        print('Exiting...')
-        return
-    except Exception as e:
-        print('{0}: error: {1}'.format(sys.argv[0], e))
-        return
+  try:
+    page_id = get_page_id(args.url)
+    
+  except (RuntimeError, requests.exceptions.ConnectionError) as error:
+    print('{}: runtime error: {}'.format(sys.argv[0], error), file=sys.stderr)
+    sys.exit(1)
+  
+  print('Downloading posts. This may take some time, be patient...')
 
-
-    post_count = len(received_posts)
-    if args.top and post_count:
-        num_posts_for_showing = post_count if args.top > post_count else args.top
-    elif post_count:
-        num_posts_for_showing = post_count
+  postsReceiver = PostsReceiver(page_id=page_id)
+  try:
+    if not args.workers or args.workers > 1:
+      posts = postsReceiver.parallel_receive(max_workers=args.workers)
     else:
-        return
+      posts = postsReceiver.receive()
+  except KeyboardInterrupt:
+    msg = '{}: {}'.format(sys.argv[0], "Keyboard interrupt. Exiting...")
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+  except VKApiError as error:
+    print('{}: vk api error: {}'.format(sys.argv[0], error), file=sys.stderr)
+    sys.exit(1)
+  except Exception as error:
+    msg = '{}: catastrophic error: {}'.format(sys.argv[0], error)
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+  
+  if args.reposts:
+    posts = sorted(posts, key=lambda x: -x.reposts)
+  else:
+    posts = sorted(posts, key=lambda x: -x.likes)
 
-    max_url_width = len(str(max(received_posts, key=lambda x: x['id'])['id'])) + \
-                    len('https://vk.com/wall_') + len(str(page_id))
-
-    print('Elapsed time: {:.2f} sec.'.format(time.time() - init_point))
-    for i, post in enumerate(received_posts[:num_posts_for_showing]):
-        link = 'https://vk.com/wall{0}_{1}'.format(page_id, post['id'])
-        print('{num:>{num_width}} {url:<{url_width}} {date:<14} {type}: {count:,}'.format(
-            num=str(i+1)+')',
-            num_width=len(str(num_posts_for_showing))+1,
-            url=link,
-            url_width=max_url_width + 4,
-            date=str(post['date'])[:10],
-            type='Reposts' if args.reposts else 'Likes',
-            count=post['reposts'] if args.reposts else post['likes'])
-        )
+  pretty_print(posts[:args.top], page_id, args.reposts)
 
 if __name__ == '__main__':
-    main()
+  main()
