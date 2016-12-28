@@ -24,7 +24,7 @@ import argparse
 import textwrap
 import datetime
 
-from . import constants
+from . import constants, __version__ as app_version
 
 def url_validator(arg):
   """ Check correctness of url argument """
@@ -86,6 +86,10 @@ def parse_args():
   - id1234567
   - event1234567
   ''')
+  parser.add_argument('-v',
+                      '--version',
+                      action='version', version=app_version)
+
   parser.add_argument('url',
                       action='store',
                       default=None,
@@ -93,7 +97,8 @@ def parse_args():
                       type=url_validator)
   
   compar_key = parser.add_mutually_exclusive_group()
-  
+
+
   compar_key.add_argument('-l',
                           '--likes',
                           help='sort posts by number of likes (default)',

@@ -1,15 +1,16 @@
 from setuptools import setup
+from vktop import __version__ as app_version
 
 setup(
   name = 'vktop',
   packages=['vktop'],
   install_requires=['requests'],
-  version = '2.2',
+  version = app_version,
   description = 'VK-Top is used for getting popular posts of any public available page at VK.com',
   author = 'Dmitry Yutkin',
   author_email = 'yutkinn@gmail.com',
   url = 'https://github.com/yutkin/VK-Top',
-  download_url = 'https://github.com/yutkin/VK-Top/tarball/2.2',
+  download_url = 'https://github.com/yutkin/VK-Top/tarball/{}'.format(app_version),
   include_package_data=True,
   license='MIT',
   keywords = ['vk.com', 'vk', 'downloader', 'posts', 'social', 'networks', 'likes', 'reposts'],
