@@ -22,10 +22,14 @@ optional arguments:
   -h, --help            show this help message and exit
   -l, --likes           sort posts by number of likes (default)
   -r, --reposts         sort posts by number of reposts
-  -t TOP, --top TOP     number of posts to show (10 by default)
+  -n TOP, --top TOP     number of posts to show (10 by default)
   -w WORKERS, --workers WORKERS
                         number of concurrent workers (= available CPU cores by default)'
                         WARNING: Python 2.x does not support parallel downloading!
+  -f FROM, --from FROM  posts published before this date will not be processed
+                        (current date by default)
+  -t TO, --to TO        posts published after this date will not be processed
+                        (the beginning of time by default)
 ```
 ### Usage example
 ![alt text][example]
