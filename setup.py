@@ -9,7 +9,7 @@ setup(
   author = 'Dmitry Yutkin',
   author_email = 'yutkinn@gmail.com',
   url = 'https://github.com/yutkin/VK-Top',
-  download_url = 'https://github.com/yutkin/VK-Top/tarball/2.0',
+  download_url = 'https://github.com/yutkin/VK-Top/tarball/2.1',
   include_package_data=True,
   license='MIT',
   keywords = ['vk.com', 'vk', 'downloader', 'posts', 'social', 'networks', 'likes', 'reposts'],
