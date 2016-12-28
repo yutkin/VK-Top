@@ -21,8 +21,9 @@
 # SOFTWARE.
 
 import argparse
-import constants
+import textwrap
 
+from . import constants
 
 def url_validator(arg):
   """ Check correctness of url argument """
@@ -42,7 +43,7 @@ def url_validator(arg):
     return url
   
   raise argparse.ArgumentTypeError(
-    '{} - invalid url address'.format(arg))
+    '{} - invalid url address. Check help (-h option).'.format(arg))
 
 
 def positiveness_validator(arg):
@@ -57,41 +58,60 @@ def positiveness_validator(arg):
 
 def parse_args():
   """ Parses input arguments """
-  parser = argparse.ArgumentParser(description=constants.APP_DESCRIPTION,
-                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-  
+
+  app_description = textwrap.dedent('''
+  VK-Top is used for getting popular posts of any public available page at VK.com
+  Project repository: https://github.com/yutkin/VK-Top''')
+
+  parser = argparse.ArgumentParser(prog='vktop',
+                                   usage='vktop <url> [options]',
+                                   description=app_description,
+                                   formatter_class=argparse.RawTextHelpFormatter)
+
+  url_param_description = textwrap.dedent('''\
+  target page
+
+  Possible variants of input:
+  - https://vk.com/page_name,
+  - http://vk.com/public12345
+  - club1234567
+  - id1234567
+  - event1234567
+  ''')
   parser.add_argument('url',
                       action='store',
                       default=None,
-                      help='target page',
+                      help=url_param_description,
                       type=url_validator)
   
   compar_key = parser.add_mutually_exclusive_group()
   
   compar_key.add_argument('-l',
                           '--likes',
-                          help='sort by likes (default)',
+                          help='sort posts by number of likes (default)',
                           action='store_true',
                           default=True)
   
   compar_key.add_argument('-r',
                           '--reposts',
-                          help='sort by reposts',
+                          help='sort posts by number of reposts',
                           action='store_true',
                           default=False)
   
   parser.add_argument('-t',
                       '--top',
-                      help='# of posts to show (10 by default)',
+                      help='number of posts to show (10 by default)',
                       default=10,
                       type=positiveness_validator)
   
-  parser.add_argument('-w',
-                      '--workers',
-                      help='# of concurrent workers (# of CPU cores by default)',
+  parser.add_argument('-w', '--workers',
+                      help=textwrap.dedent('''\
+                      number of concurrent workers (= available CPU cores by default)'
+                      WARNING: Python 2.x does not support parallel downloading!'''),
                       default=None,
                       type=positiveness_validator)
-  
+
+  # TODO
   # parser.add_argument('-d',
   #   '--days',
   #   type=int,

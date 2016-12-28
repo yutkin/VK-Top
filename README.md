@@ -1,37 +1,33 @@
-## Installation
+### Installation
 `pip install vktop`
 
-##Dependencies
-- [Requests]
-
-##Help
+### Help
 ```
-usage: vktop.py [-h] [-l | -r] [-t TOP] [-d DAYS] url
+usage: vktop <url> [options]
 
-Sort posts of any public availabe page at VK.com.
-Github: https://github.com/yutkin/VK-Top
-
-Possible types of input URLs:
-- https://vk.com/page_name
-- http://vk.com/club12345
-- public1234567
-- id1234567
-- event1234567
+VK-Top is used for getting popular posts of any public available page at VK.com
+Project repository: https://github.com/yutkin/VK-Top
 
 positional arguments:
   url                   target page
 
+                        Possible variants of input:
+                        - https://vk.com/page_name,
+                        - http://vk.com/public12345
+                        - club1234567
+                        - id1234567
+                        - event1234567
+
 optional arguments:
   -h, --help            show this help message and exit
-  -l, --likes           sort posts by likes (by default)
-  -r, --reposts         sort posts by reposts
-  -t TOP, --top TOP     number of showing posts. (10 by default)
-  -d DAYS, --days DAYS  last period (in days) for post processing. (all period
-                        by default)
-
+  -l, --likes           sort posts by number of likes (default)
+  -r, --reposts         sort posts by number of reposts
+  -t TOP, --top TOP     number of posts to show (10 by default)
+  -w WORKERS, --workers WORKERS
+                        number of concurrent workers (= available CPU cores by default)'
+                        WARNING: Python 2.x does not support parallel downloading!
 ```
-##Usage example
+### Usage example
 ![alt text][example]
 
-[example]: http://s11.postimg.org/5xs9hakk3/Screen_Shot_2016_01_09_at_00_05_24.png "Example"
-[Requests]: https://github.com/kennethreitz/requests
+[example]: https://media.giphy.com/media/26FL98ClJbv6QzODu/source.gif "Example"

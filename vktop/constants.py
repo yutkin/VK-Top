@@ -20,20 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import textwrap
 import re
-
-APP_DESCRIPTION = textwrap.dedent('''
-    Sort posts of any public available page at VK.com.
-    GitHub: https://github.com/yutkin/VK-Top
-
-    Possible types of input URLs:
-    - https://vk.com/page_name
-    - http://vk.com/club12345
-    - public1234567
-    - id1234567
-    - event1234567
-    ''')
 
 VKAPI_URL = 'https://api.vk.com/method/'
 VKAPI_VERSION = 5.53

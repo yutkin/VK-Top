@@ -34,7 +34,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-env/
+env3/
+env2/
 build/
 develop-eggs/
 dist/
