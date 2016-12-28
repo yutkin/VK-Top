@@ -22,6 +22,7 @@
 
 import argparse
 import textwrap
+import datetime
 
 from . import constants
 
@@ -55,6 +56,13 @@ def positiveness_validator(arg):
     raise argparse.ArgumentTypeError(
       '{} - must be a positive number'.format(arg))
 
+def date_validator(arg):
+  try:
+    date = datetime.datetime.strptime(arg.replace('.', '-'), '%d-%m-%Y').date()
+  except Exception:
+    raise argparse.ArgumentTypeError(
+      '{} - invalid date format. Check help (-h option).'.format(arg))
+  return date
 
 def parse_args():
   """ Parses input arguments """
@@ -98,7 +106,7 @@ def parse_args():
                           action='store_true',
                           default=False)
   
-  parser.add_argument('-t',
+  parser.add_argument('-n',
                       '--top',
                       help='number of posts to show (10 by default)',
                       default=10,
@@ -111,12 +119,24 @@ def parse_args():
                       default=None,
                       type=positiveness_validator)
 
-  # TODO
-  # parser.add_argument('-d',
-  #   '--days',
-  #   type=int,
-  #   default=None,
-  #   help='get the posts published only in the last -d days'
-  #        '(from the beginning of time by default)')
-  
+
+  parser.add_argument('-f',
+                      '--from',
+                      action='store',
+                      type=date_validator,
+                      default=None,
+                      help=textwrap.dedent('''\
+                      posts published before this date will not be processed
+                      (current date by default)'''),
+                      )
+
+  parser.add_argument('-t',
+                      '--to',
+                      action='store',
+                      type=date_validator,
+                      default=None,
+                      help=textwrap.dedent('''\
+                      posts published after this date will not be processed
+                      (the beginning of time by default)''')
+                      )
   return parser.parse_args()

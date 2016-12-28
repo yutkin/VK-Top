@@ -24,6 +24,7 @@ from __future__ import print_function
 
 import requests
 import sys
+import datetime
 
 from .argparser import parse_args
 from .constants import VKAPI_URL, VKAPI_VERSION
@@ -31,10 +32,12 @@ from .utils import get_page_id, VKApiError, pretty_print
 from .post import Post
 
 class PostDownloader:
-  def __init__(self, page_id):
+  def __init__(self, page_id, from_date=None, to_date=None):
     self.page_id = page_id
     self.api_url = VKAPI_URL + 'wall.get'
     self.request_params = {'owner_id': self.page_id, 'v': VKAPI_VERSION}
+    self.from_date = from_date or datetime.date.min
+    self.to_date = to_date or datetime.date.max
   
   def _number_of_posts(self):
     """ Returns total number of post on the page """
@@ -57,26 +60,30 @@ class PostDownloader:
     self.request_params['count'] = min(num_to_fetch, 100)
 
     fetched_posts = []
-    while len(fetched_posts) != num_to_fetch:
+    fetched_counter = 0
+    while fetched_counter != num_to_fetch:
       response = requests.get(self.api_url, params=self.request_params).json()
     
       if 'error' in response:
         raise VKApiError(response['error']['error_msg'])
       
       posts = response['response']['items']
+      fetched_counter += len(posts)
 
       for post in posts:
-        fetched_posts.append(Post(
+        post = Post(
           id=post['id'],
           text=post['text'],
           likes=post['likes']['count'],
           reposts=post['reposts']['count'],
-          date=post['date'],
-          url='https://vk.com/wall{0}_{1}'.format(self.page_id, post['id']))
+          date=datetime.date.fromtimestamp(post['date']),
+          url='https://vk.com/wall{0}_{1}'.format(self.page_id, post['id'])
         )
+        if self.from_date <= post.date <= self.to_date:
+          fetched_posts.append(post)
 
       self.request_params['offset'] += 100
-      self.request_params['count'] = min(num_to_fetch - len(fetched_posts), 100)
+      self.request_params['count'] = min(num_to_fetch - fetched_counter, 100)
 
     return fetched_posts
   
@@ -120,10 +127,10 @@ class PostDownloader:
 
 
 def main():
-  args = parse_args()
+  args = vars(parse_args())
 
   try:
-    page_id = get_page_id(args.url)
+    page_id = get_page_id(args['url'])
     
   except (RuntimeError, requests.exceptions.ConnectionError) as error:
     print('{}: runtime error: {}'.format(sys.argv[0], error), file=sys.stderr)
@@ -131,16 +138,16 @@ def main():
   
   print('Downloading posts. This may take some time, be patient...')
 
-  downloader = PostDownloader(page_id=page_id)
+  downloader = PostDownloader(page_id, args['from'], args['to'])
 
   try:
     if (sys.version_info > (3, 0)):
-      posts = downloader.parallel_fetch(max_workers=args.workers)
+      posts = downloader.parallel_fetch(max_workers=args['workers'])
     else:
       # TODO:
       # Python 2.x does not support concurrent.futures out of the box,
       # therefore in Python 2.x using synchronous downloading
-      if args.workers:
+      if args['workers']:
         print('WARNING: Python 2.x does not support parallel downloading!')
       posts = downloader.fetch()
 
@@ -156,12 +163,12 @@ def main():
     print(msg, file=sys.stderr)
     sys.exit(1)
   
-  if args.reposts:
+  if args['reposts']:
     posts = sorted(posts, key=lambda x: -x.reposts)
   else:
     posts = sorted(posts, key=lambda x: -x.likes)
 
-  pretty_print(posts[:args.top], args.reposts)
+  pretty_print(posts[:args['top']])
 
 if __name__ == '__main__':
   main()
