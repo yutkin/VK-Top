@@ -34,4 +34,4 @@ optional arguments:
 ### Usage example
 ![alt text][example]
 
-[example]: https://media.giphy.com/media/26FL98ClJbv6QzODu/source.gif "Example"
+[example]: https://media.giphy.com/media/26FKTawVSwKO4ZHfq/source.gif "Example"
