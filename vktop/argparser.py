@@ -44,7 +44,7 @@ def url_validator(arg):
     return url
   
   raise argparse.ArgumentTypeError(
-    '{} - invalid url address. Check help (-h option).'.format(arg))
+    '{} - invalid url address'.format(arg))
 
 
 def positiveness_validator(arg):
@@ -61,7 +61,7 @@ def date_validator(arg):
     date = datetime.datetime.strptime(arg.replace('.', '-'), '%d-%m-%Y').date()
   except Exception:
     raise argparse.ArgumentTypeError(
-      '{} - invalid date format. Check help (-h option).'.format(arg))
+      '{} - invalid date format'.format(arg))
   return date
 
 def parse_args():
@@ -76,10 +76,13 @@ def parse_args():
                                    description=app_description,
                                    formatter_class=argparse.RawTextHelpFormatter)
 
+  parser._optionals.title = 'Options'
+  parser._positionals.title = 'Parameters'
+
   url_param_description = textwrap.dedent('''\
   target page
 
-  Possible variants of input:
+  Possible variants of <url>:
   - https://vk.com/page_name,
   - http://vk.com/public12345
   - club1234567
@@ -113,14 +116,17 @@ def parse_args():
   
   parser.add_argument('-n',
                       '--top',
-                      help='number of posts to show (10 by default)',
+                      help='number of posts to show',
                       default=10,
+                      metavar='<number>',
                       type=positiveness_validator)
   
   parser.add_argument('-w', '--workers',
+                      metavar='<number>',
                       help=textwrap.dedent('''\
-                      number of concurrent workers (= available CPU cores by default)'
-                      WARNING: Python 2.x does not support parallel downloading!'''),
+                      number of concurrent workers
+                      \033[93mWARNING: Python 2.x does not support parallel
+                      downloading!\033[0m'''),
                       default=None,
                       type=positiveness_validator)
 
@@ -130,9 +136,9 @@ def parse_args():
                       action='store',
                       type=date_validator,
                       default=None,
+                      metavar='<date>',
                       help=textwrap.dedent('''\
-                      posts published before this date will not be processed
-                      (current date by default)'''),
+                      discard posts published before this date'''),
                       )
 
   parser.add_argument('-t',
@@ -140,8 +146,25 @@ def parse_args():
                       action='store',
                       type=date_validator,
                       default=None,
+                      metavar='<date>',
                       help=textwrap.dedent('''\
-                      posts published after this date will not be processed
-                      (the beginning of time by default)''')
+                      discard posts published after this date''')
+                      )
+
+  # parser.add_argument('-d',
+  #                     '--days',
+  #                     action='store',
+  #                     type=positiveness_validator,
+  #                     default=None,
+  #                     metavar='<number>',
+  #                     help=textwrap.dedent('''\
+  #                     discard posts published <number> days ago''')
+  #                     )
+
+  parser.add_argument('--verbose',
+                      action='store_true',
+                      default=False,
+                      help=textwrap.dedent('''\
+                        print debug messages''')
                       )
   return parser.parse_args()

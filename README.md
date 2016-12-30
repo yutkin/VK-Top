@@ -8,28 +8,32 @@ usage: vktop <url> [options]
 VK-Top is used for getting popular posts of any public available page at VK.com
 Project repository: https://github.com/yutkin/VK-Top
 
-positional arguments:
+Parameters:
   url                   target page
 
-                        Possible variants of input:
+                        Possible variants of <url>:
                         - https://vk.com/page_name,
                         - http://vk.com/public12345
                         - club1234567
                         - id1234567
                         - event1234567
 
-optional arguments:
+Options:
   -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
   -l, --likes           sort posts by number of likes (default)
   -r, --reposts         sort posts by number of reposts
-  -n TOP, --top TOP     number of posts to show (10 by default)
-  -w WORKERS, --workers WORKERS
-                        number of concurrent workers (= available CPU cores by default)'
-                        WARNING: Python 2.x does not support parallel downloading!
-  -f FROM, --from FROM  posts published before this date will not be processed
-                        (current date by default)
-  -t TO, --to TO        posts published after this date will not be processed
-                        (the beginning of time by default)
+  -n <number>, --top <number>
+                        number of posts to show
+  -w <number>, --workers <number>
+                        number of concurrent workers
+                        WARNING: Python 2.x does not support parallel
+                        downloading!
+  -f <date>, --from <date>
+                        discard posts published before this date
+  -t <date>, --to <date>
+                        discard posts published after this date
+  --verbose             print debug messages
 ```
 ### Usage example
 ![alt text][example]

@@ -31,6 +31,17 @@ from .constants import VKAPI_URL, VKAPI_VERSION
 from .utils import get_page_id, VKApiError, pretty_print
 from .post import Post
 
+# Define logging parameters for --verbose option
+import logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='[\033[92m%(levelname)s %(asctime)s\033[0m]: %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p')
+
+# Removing noisy debug messages from lib request
+requests_logger = logging.getLogger('requests')
+requests_logger.setLevel(logging.CRITICAL)
+LOGGER = logging.getLogger()
+
 class PostDownloader:
   def __init__(self, page_id, from_date=None, to_date=None):
     self.page_id = page_id
@@ -52,12 +63,19 @@ class PostDownloader:
     
     return response['response']['count']
   
-  def fetch(self, init_offset=0, num_to_fetch=None):
+  def fetch(self, init_offset=0, num_to_fetch=None, verbose_mode=False):
     """ Downloads 'num_to_fetch' posts starting from 'init_offset' position """
+
+    from multiprocessing import current_process
+    global LOGGER
 
     num_to_fetch = num_to_fetch or self._number_of_posts()
     self.request_params['offset'] = init_offset
     self.request_params['count'] = min(num_to_fetch, 100)
+
+    if verbose_mode:
+      LOGGER.debug('{} trying to download {} posts'.format(current_process().name,
+                                                           num_to_fetch))
 
     fetched_posts = []
     fetched_counter = 0
@@ -69,6 +87,10 @@ class PostDownloader:
       
       posts = response['response']['items']
       fetched_counter += len(posts)
+
+      if verbose_mode:
+        LOGGER.debug('{} downloaded {}/{} posts'.format(current_process().name,
+                                                 fetched_counter, num_to_fetch))
 
       for post in posts:
         post = Post(
@@ -82,15 +104,25 @@ class PostDownloader:
         if self.from_date <= post.date <= self.to_date:
           fetched_posts.append(post)
 
+        # Early stopping, all subsequent post should be discard
+        elif post.date < self.from_date:
+          if verbose_mode:
+            LOGGER.debug('{} returns eventually {} posts'.format(
+              current_process().name, len(fetched_posts)))
+          return fetched_posts
+
       self.request_params['offset'] += 100
       self.request_params['count'] = min(num_to_fetch - fetched_counter, 100)
 
+    if verbose_mode:
+      LOGGER.debug('{} returns eventually {} posts'.format(
+        current_process().name, len(fetched_posts)))
     return fetched_posts
   
-  def parallel_fetch(self, max_workers=None):
+  def parallel_fetch(self, verbose_mode=False, max_workers=None):
     """  Downloads posts in parallel processes.
     Each worker downloads independent segment. """
-    
+
     from multiprocessing import cpu_count
     from concurrent.futures import ProcessPoolExecutor
     from concurrent.futures import as_completed
@@ -101,16 +133,17 @@ class PostDownloader:
     num_workers = max_workers or cpu_count()
 
     fetched_posts = []
+
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
       futures = []
-      for offset, num_to_fetch in self._distribute_posts(num_posts, num_workers):
-        futures.append(executor.submit(self.fetch, offset, num_to_fetch))
+      for offset, count in self._distribute_posts(num_posts, num_workers):
+        futures.append(executor.submit(self.fetch, offset, count, verbose_mode))
 
       for future in as_completed(futures):
         try:
           fetched_posts.extend(future.result())
-        except Exception as exc:
-          raise RuntimeError(exc)
+        except Exception as error:
+          raise RuntimeError(error)
 
     return fetched_posts
   
@@ -131,7 +164,6 @@ def main():
 
   try:
     page_id = get_page_id(args['url'])
-    
   except (RuntimeError, requests.exceptions.ConnectionError) as error:
     print('{}: runtime error: {}'.format(sys.argv[0], error), file=sys.stderr)
     sys.exit(1)
@@ -142,15 +174,16 @@ def main():
 
   try:
     if (sys.version_info > (3, 0)):
-      posts = downloader.parallel_fetch(max_workers=args['workers'])
+      posts = downloader.parallel_fetch(args['verbose'], args['workers'])
     else:
       # TODO:
       # Python 2.x does not support concurrent.futures out of the box,
       # therefore in Python 2.x using synchronous downloading
       if args['workers']:
-        print('WARNING: Python 2.x does not support parallel downloading!')
-      posts = downloader.fetch()
-
+        print('\033[93m'
+              'WARNING: Python 2.x does not support parallel downloading!'
+              '\033[0m')
+      posts = downloader.fetch(verbose_mode=args['verbose'])
   except KeyboardInterrupt:
     msg = '{}: {}'.format(sys.argv[0], "Keyboard interrupt. Exiting...")
     print(msg, file=sys.stderr)
@@ -162,7 +195,10 @@ def main():
     msg = '{}: catastrophic error: {}'.format(sys.argv[0], error)
     print(msg, file=sys.stderr)
     sys.exit(1)
-  
+
+  if args['verbose']:
+    LOGGER.debug('Sorting {} posts'.format(len(posts)))
+
   if args['reposts']:
     posts = sorted(posts, key=lambda x: -x.reposts)
   else:
