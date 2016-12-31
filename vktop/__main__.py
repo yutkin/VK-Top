@@ -212,9 +212,9 @@ def main():
     LOGGER.debug('Sorting {} posts'.format(len(posts)))
 
   if args['reposts']:
-    posts = sorted(posts, key=lambda x: -x.reposts)
+    posts = sorted(posts, key=lambda x: (-x.reposts, -x.likes))
   else:
-    posts = sorted(posts, key=lambda x: -x.likes)
+    posts = sorted(posts, key=lambda x: (-x.likes, -x.reposts))
 
   pretty_print(posts[:args['top']])
 
