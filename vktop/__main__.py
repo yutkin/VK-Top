@@ -129,6 +129,9 @@ class PostDownloader:
     from concurrent.futures import as_completed
 
     # Total number of posts to download
+    # TODO:
+    # discover overhead for creating new workers when small
+    # number of posts need to download
     num_posts = self._number_of_posts()
     
     num_workers = max_workers or cpu_count()

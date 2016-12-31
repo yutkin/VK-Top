@@ -1,3 +1,6 @@
+[![PyPI version](https://badge.fury.io/py/vktop.svg)](https://pypi.python.org/pypi?:action=display&name=vktop)
+[![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://opensource.org/licenses/MIT)
+
 ### Installation
 `pip install vktop`
 
