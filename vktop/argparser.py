@@ -47,8 +47,8 @@ def url_validator(arg):
     '{} - invalid url address'.format(arg))
 
 
-def positiveness_validator(arg):
-  """ Check number on positiveness """
+def pos_int_validator(arg):
+  """ Check that number is integer and positive """
   num = int(arg)
   if num > 0:
     return num
@@ -119,7 +119,7 @@ def parse_args():
                       help='number of posts to show',
                       default=10,
                       metavar='<number>',
-                      type=positiveness_validator)
+                      type=pos_int_validator)
   
   parser.add_argument('-w', '--workers',
                       metavar='<number>',
@@ -128,7 +128,7 @@ def parse_args():
                       \033[93mWARNING: Python 2.x does not support parallel
                       downloading!\033[0m'''),
                       default=None,
-                      type=positiveness_validator)
+                      type=pos_int_validator)
 
 
   parser.add_argument('-f',
@@ -151,15 +151,15 @@ def parse_args():
                       discard posts published after this date''')
                       )
 
-  # parser.add_argument('-d',
-  #                     '--days',
-  #                     action='store',
-  #                     type=positiveness_validator,
-  #                     default=None,
-  #                     metavar='<number>',
-  #                     help=textwrap.dedent('''\
-  #                     discard posts published <number> days ago''')
-  #                     )
+  parser.add_argument('-d',
+                      '--days',
+                      action='store',
+                      type=pos_int_validator,
+                      default=None,
+                      metavar='<number>',
+                      help=textwrap.dedent('''\
+                      discard posts published <number> days ago''')
+                      )
 
   parser.add_argument('--verbose',
                       action='store_true',

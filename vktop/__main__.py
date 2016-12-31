@@ -25,6 +25,7 @@ from __future__ import print_function
 import requests
 import sys
 import datetime
+from datetime import timedelta
 
 from .argparser import parse_args
 from .constants import VKAPI_URL, VKAPI_VERSION
@@ -104,7 +105,7 @@ class PostDownloader:
         if self.from_date <= post.date <= self.to_date:
           fetched_posts.append(post)
 
-        # Early stopping, all subsequent post should be discard
+        # Early stopping, all subsequent post should be discarded
         elif post.date < self.from_date:
           if verbose_mode:
             LOGGER.debug('{} returns eventually {} posts'.format(
@@ -161,6 +162,14 @@ class PostDownloader:
 
 def main():
   args = vars(parse_args())
+
+  if args['days']:
+    if (args['from'] or args['to']):
+      print('vktop: error: -d/--days option cannot be used with '
+            '-f/--from or -t/--to options', file=sys.stderr)
+      sys.exit(1)
+    else:
+      args['from'] = datetime.date.today() - timedelta(days=args['days'])
 
   try:
     page_id = get_page_id(args['url'])

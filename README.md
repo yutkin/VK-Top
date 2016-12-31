@@ -33,6 +33,8 @@ Options:
                         discard posts published before this date
   -t <date>, --to <date>
                         discard posts published after this date
+  -d <number>, --days <number>
+                        discard posts published <number> days ago
   --verbose             print debug messages
 ```
 ### Usage example
