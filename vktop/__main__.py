@@ -28,15 +28,16 @@ import datetime
 from datetime import timedelta
 
 from .argparser import parse_args
-from .constants import VKAPI_URL, VKAPI_VERSION
+from .constants import VKAPI_URL, VKAPI_VERSION, APP_ACCESS_KEY
 from .utils import get_page_id, VKApiError, pretty_print
 from .post import Post
 
 # Define logging parameters for --verbose option
 import logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='[\033[92m%(levelname)s %(asctime)s\033[0m]: %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(
+  level=logging.DEBUG,
+  format='[\033[92m%(levelname)s %(asctime)s\033[0m]: %(message)s',
+  datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # Removing noisy debug messages from lib request
 requests_logger = logging.getLogger('requests')
@@ -47,7 +48,11 @@ class PostDownloader:
   def __init__(self, page_id, from_date=None, to_date=None):
     self.page_id = page_id
     self.api_url = VKAPI_URL + 'wall.get'
-    self.request_params = {'owner_id': self.page_id, 'v': VKAPI_VERSION}
+    self.request_params = {
+      'owner_id': self.page_id,
+      'v': VKAPI_VERSION,
+      'access_token': APP_ACCESS_KEY
+    }
     self.from_date = from_date or datetime.date.min
     self.to_date = to_date or datetime.date.max
   
@@ -75,13 +80,13 @@ class PostDownloader:
     self.request_params['count'] = min(num_to_fetch, 100)
 
     if verbose_mode:
-      LOGGER.debug('{} trying to download {} posts'.format(current_process().name,
-                                                           num_to_fetch))
+      LOGGER.debug('{} trying to download {} posts'.format(
+        current_process().name, num_to_fetch))
 
     fetched_posts = []
     fetched_counter = 0
     while fetched_counter != num_to_fetch:
-      response = requests.get(self.api_url, params=self.request_params).json()
+      response = requests.get(self.api_url, self.request_params).json()
     
       if 'error' in response:
         raise VKApiError(response['error']['error_msg'])
@@ -90,8 +95,8 @@ class PostDownloader:
       fetched_counter += len(posts)
 
       if verbose_mode:
-        LOGGER.debug('{} downloaded {}/{} posts'.format(current_process().name,
-                                                 fetched_counter, num_to_fetch))
+        LOGGER.debug('{} downloaded {}/{} posts'.format(
+          current_process().name, fetched_counter, num_to_fetch))
 
       for post in posts:
         post = Post(
@@ -153,7 +158,7 @@ class PostDownloader:
   
   def _distribute_posts(self, total_posts, workers):
     """ Uniformly distributes posts for downloading between workers.
-    Returns next start position for downloading and number of posts to fetch. """
+    Returns next start position for downloading and number of posts to fetch."""
 
     per_worker = total_posts // workers + total_posts % workers
     for offset in range(0, total_posts, per_worker):

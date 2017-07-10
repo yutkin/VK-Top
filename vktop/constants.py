@@ -22,6 +22,7 @@
 
 import re
 
+APP_ACCESS_KEY = '4c078c244c078c244c078c24614c5279bc44c074c078c241564a36b509cacf5c9242daa'
 VKAPI_URL = 'https://api.vk.com/method/'
 VKAPI_VERSION = 5.53
 
