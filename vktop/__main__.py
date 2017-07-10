@@ -38,10 +38,8 @@ logging.basicConfig(
   level=logging.DEBUG,
   format='[\033[92m%(levelname)s %(asctime)s\033[0m]: %(message)s',
   datefmt='%m/%d/%Y %I:%M:%S %p')
-
 # Removing noisy debug messages from lib request
-requests_logger = logging.getLogger('requests')
-requests_logger.setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 LOGGER = logging.getLogger()
 
 class PostDownloader:
@@ -80,6 +78,7 @@ class PostDownloader:
     self.request_params['count'] = min(num_to_fetch, 100)
 
     if verbose_mode:
+      logging.getLogger('urllib3').setLevel(logging.DEBUG)
       LOGGER.debug('{} trying to download {} posts'.format(
         current_process().name, num_to_fetch))
 
