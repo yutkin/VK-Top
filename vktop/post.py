@@ -22,13 +22,14 @@
 
 
 class Post:
-    def __init__(self, id, likes, reposts, date, text, url=None):
+    def __init__(self, id, likes, reposts, date, text, url=None, is_pinned=0):
         self._id = id
         self._likes = likes
         self._reposts = reposts
         self._text = text
         self._date = date
         self._url = url
+        self._is_pinned = is_pinned
 
     @property
     def id(self):
@@ -53,3 +54,7 @@ class Post:
     @property
     def url(self):
         return self._url
+
+    @property
+    def is_pinned(self):
+        return self._is_pinned
