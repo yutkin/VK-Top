@@ -109,12 +109,13 @@ class PostDownloader:
                     reposts=post["reposts"]["count"],
                     date=datetime.date.fromtimestamp(post["date"]),
                     url="https://vk.com/wall{}_{}".format(self.page_id, post["id"]),
+                    is_pinned=post.get("is_pinned", 0)
                 )
                 if self.from_date <= post.date <= self.to_date:
                     fetched_posts.append(post)
 
                 # Early stopping, all subsequent post should be discarded
-                elif post.date < self.from_date:
+                elif post.date < self.from_date and post.is_pinned == 0:
                     logger.debug(
                         "{} finally returns {} posts".format(
                             current_process().name, len(fetched_posts)
